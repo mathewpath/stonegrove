@@ -1,0 +1,11 @@
+# raw row-level data never gets committed
+data/raw/*.csv
+
+# python
+__pycache__/
+*.pyc
+.venv/
+
+# OS / editor
+.DS_Store
+Thumbs.db
