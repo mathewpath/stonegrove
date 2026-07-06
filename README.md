@@ -4,8 +4,8 @@ An interactive analytical instrument for exploring equality-of-outcome gaps acro
 the student lifecycle, built for the **Stonegrove Edge Project**. It reads a
 synthetic institutional dataset of **35,001 students across seven academic years**
 (55 programmes, 5 faculties, ~2.2m weekly engagement records) through five
-demographic lenses — ancestry, gender, disability disclosure, first-in-family
-status and socio-economic band — from first login to first salary.
+demographic lenses: ancestry, gender, disability disclosure, first-in-family
+status and socio-economic band from first login to first salary.
 
 **Live demo:** deploy `index.html` to any static host (Vercel, GitHub Pages, Netlify).
 
@@ -18,10 +18,10 @@ status and socio-economic band — from first login to first salary.
 | **Trends** | Are the gaps stable, widening, or closing across seven academic years? |
 | **Weekly Rhythm** | When does disengagement start? Attendance & VLE curves by teaching week. |
 | **Faculty & Programmes** | Where is the gap concentrated? Faculty breakdowns + a sortable 55-programme league table with within-programme SEC gaps. |
-| **Intersections** | How does disadvantage compound? Cross any two lenses on any of six metrics. |
+| **Intersections** | How does disadvantage compound? Cross any two lenses on any of the six metrics. |
 | **Distributions** | Where in the mark distribution does the gap live? |
 
-Three headline readings the instrument surfaces:
+Three headline readings of the instrument surfaces:
 
 1. **Equal access, unequal quality.** Employment within 15 months barely moves
    across any group (≈2 pts), but professional-level employment spreads by up to
