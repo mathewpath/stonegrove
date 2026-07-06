@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stonegrove DEI Research Instrument</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#10151C; --bg-panel:#171F29; --bg-raised:#1D2733;
+    --text:#E9E6DC; --dim:#8A93A0; --dimmer:#5D6672;
+    --rule:rgba(233,230,220,0.10); --rule-strong:rgba(233,230,220,0.22);
+    --brass:#C9A24B; --brass-dim:rgba(201,162,75,0.35);
+    --teal:#6FA89C; --clay:#C1683F; --violet:#8D82C4; --sky:#7FA3C6;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'IBM Plex Mono',monospace;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 22px 90px;}
+
+  .instrument-id{font-size:11px;letter-spacing:.14em;color:var(--brass);text-transform:uppercase;margin-bottom:10px;display:flex;gap:10px;align-items:center;}
+  .instrument-id::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--brass);box-shadow:0 0 0 3px var(--brass-dim);}
+  h1{font-family:'Fraunces',serif;font-weight:600;font-size:clamp(26px,4.6vw,40px);line-height:1.05;letter-spacing:-.01em;margin:0 0 12px;}
+  h1 em{font-style:italic;font-weight:400;color:var(--brass);}
+  .dek{font-family:'Fraunces',serif;font-size:15px;line-height:1.55;color:var(--dim);max-width:700px;margin:0 0 22px;font-style:italic;}
+
+  .stat-strip{display:flex;gap:0;flex-wrap:wrap;border:1px solid var(--rule);border-radius:2px;background:var(--bg-panel);margin-bottom:26px;}
+  .stat{padding:14px 20px;border-right:1px solid var(--rule);flex:1;min-width:130px;}
+  .stat:last-child{border-right:none;}
+  .stat .v{font-family:'Fraunces',serif;font-size:22px;font-weight:600;}
+  .stat .k{font-size:10px;color:var(--dimmer);letter-spacing:.08em;text-transform:uppercase;margin-top:3px;}
+
+  /* tabs */
+  .tabs{display:flex;gap:0;flex-wrap:wrap;border-bottom:1px solid var(--rule-strong);margin-bottom:26px;}
+  .tab{font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:none;border:none;color:var(--dim);padding:11px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;letter-spacing:.01em;}
+  .tab:hover{color:var(--text);}
+  .tab.active{color:var(--brass);border-bottom-color:var(--brass);font-weight:600;}
+
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* controls */
+  .ctrl-row{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:22px;align-items:flex-end;}
+  .ctrl{display:flex;flex-direction:column;gap:7px;}
+  .ctrl-label{font-size:10px;letter-spacing:.1em;color:var(--dimmer);text-transform:uppercase;}
+  .btn-group{display:flex;gap:6px;flex-wrap:wrap;}
+  .pill{font-family:'IBM Plex Mono',monospace;font-size:11.5px;background:transparent;color:var(--dim);border:1px solid var(--rule-strong);padding:7px 12px;border-radius:2px;cursor:pointer;transition:all .13s;}
+  .pill:hover{border-color:var(--brass-dim);color:var(--text);}
+  .pill.active{background:var(--brass);border-color:var(--brass);color:#171009;font-weight:600;}
+  select{font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--bg-raised);color:var(--text);border:1px solid var(--rule-strong);padding:8px 10px;border-radius:2px;cursor:pointer;}
+
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin:0 0 18px;}
+  .legend-item{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--dim);}
+  .legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  .legend-n{color:var(--dimmer);}
+
+  .panel{border:1px solid var(--rule);border-radius:2px;margin-bottom:18px;background:var(--bg-panel);overflow:hidden;}
+  .panel-head{display:flex;justify-content:space-between;align-items:baseline;padding:13px 18px 11px;border-bottom:1px solid var(--rule);}
+  .panel-title{font-family:'Fraunces',serif;font-size:16px;font-weight:600;}
+  .panel-sub{font-size:10px;color:var(--dimmer);text-align:right;max-width:260px;line-height:1.4;}
+  .panel-body{padding:14px 18px 10px;}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px 26px;}
+  @media(max-width:720px){.grid-2{grid-template-columns:1fr;}}
+
+  .metric-block{}
+  .metric-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;}
+  .metric-name{font-size:11.5px;font-weight:600;}
+  .metric-gap{font-size:10px;color:var(--brass);white-space:nowrap;margin-left:8px;}
+  .metric-gap b{font-family:'Fraunces',serif;font-size:12.5px;}
+  .chart-h-sm{height:120px;position:relative;}
+  .chart-h-md{height:230px;position:relative;}
+  .chart-h-lg{height:300px;position:relative;}
+
+  /* heatmap */
+  table.hm{border-collapse:collapse;width:100%;font-size:11px;}
+  table.hm th{font-weight:600;color:var(--dim);padding:7px 9px;text-align:left;border-bottom:1px solid var(--rule);font-size:10.5px;}
+  table.hm td{padding:0;border:1px solid var(--bg);}
+  .hm-cell{padding:10px 9px;text-align:center;font-weight:600;font-size:11.5px;position:relative;}
+  .hm-cell .n{display:block;font-weight:400;font-size:8.5px;opacity:.65;margin-top:1px;}
+  .hm-rowlabel{color:var(--dim);padding:7px 9px !important;white-space:nowrap;font-size:10.5px;}
+
+  /* overview gap matrix */
+  .gapm{border-collapse:collapse;width:100%;font-size:11px;}
+  .gapm th{font-weight:600;color:var(--dim);padding:8px 9px;border-bottom:1px solid var(--rule-strong);text-align:right;font-size:10px;letter-spacing:.03em;}
+  .gapm th:first-child{text-align:left;}
+  .gapm td{padding:9px;border-bottom:1px solid var(--rule);text-align:right;cursor:pointer;}
+  .gapm td:first-child{text-align:left;color:var(--dim);}
+  .gapm tr:hover td{background:var(--bg-raised);}
+  .gap-chip{display:inline-block;min-width:52px;padding:3px 7px;border-radius:2px;font-weight:600;font-size:11px;}
+
+  /* programme table */
+  table.pt{border-collapse:collapse;width:100%;font-size:11px;}
+  .pt th{font-weight:600;color:var(--dim);padding:9px 10px;border-bottom:1px solid var(--rule-strong);text-align:right;cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;letter-spacing:.03em;}
+  .pt th:nth-child(1),.pt th:nth-child(2){text-align:left;}
+  .pt th .arrow{color:var(--brass);}
+  .pt td{padding:8px 10px;border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap;}
+  .pt td:nth-child(1),.pt td:nth-child(2){text-align:left;white-space:normal;}
+  .pt tr:hover td{background:var(--bg-raised);}
+  .pt .fac{color:var(--dimmer);font-size:10px;}
+  .warn{color:var(--clay);font-weight:600;}
+  .ok{color:var(--teal);}
+
+  .note{font-size:11px;line-height:1.65;color:var(--dimmer);margin:14px 0 0;}
+  .note b{color:var(--dim);}
+  .reading{border-left:2px solid var(--brass);padding:2px 0 2px 14px;font-size:12.5px;line-height:1.65;color:var(--dim);margin:0 0 20px;max-width:760px;}
+  .reading b{color:var(--text);}
+
+  .footnote{margin-top:34px;padding-top:18px;border-top:1px dashed var(--rule);font-size:10.5px;line-height:1.7;color:var(--dimmer);}
+  .footnote b{color:var(--dim);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="instrument-id">Stonegrove Edge Project · Field Instrument No. 3</div>
+  <h1>The DEI Research <em>Instrument</em></h1>
+  <p class="dek">A working analytical instrument for planning, quality and widening-participation teams: 35,000 students across seven academic years, read through five demographic lenses — from first login to first salary.</p>
+
+  <div class="stat-strip" id="statStrip"></div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <!-- ============ VIEW: OVERVIEW ============ -->
+  <div class="view" id="view-overview">
+    <div class="reading"><b>How to read this instrument.</b> Every cell below is a <b>gap</b> — the distance between the best- and worst-served group under each lens, for each stage of the student lifecycle. Warm cells are where the institution's attention should go first. Click any row to open it in the Gap Explorer.</div>
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">Gap Matrix — lifecycle stage × lens</div><div class="panel-sub">Cell = max − min group value. Colour scaled per column.</div></div>
+      <div class="panel-body" style="overflow-x:auto;"><table class="gapm" id="gapMatrix"></table></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">Three readings the matrix surfaces</div></div>
+      <div class="panel-body">
+        <div class="reading" style="margin-bottom:14px;"><b>1 · Equal access, unequal quality.</b> Employment within 15 months barely moves across any lens (≈2 pts), but professional-level employment spreads by up to 12.7 pts and salary band by nearly 2 full bands — the gap is in <b>which</b> jobs, not <b>whether</b> jobs.</div>
+        <div class="reading" style="margin-bottom:14px;"><b>2 · Socio-economic band is the master lens.</b> Low-SEC students fail years at 6× the rate of high-SEC students (25.0% vs 4.2%) and reach good honours at a third of the rate (21.9% vs 68.0%) — the widest spread on almost every row.</div>
+        <div class="reading" style="margin-bottom:0;"><b>3 · Belonging is not the problem.</b> The groups with the worst outcomes report belonging as high as — sometimes higher than — everyone else. Whatever drives these gaps, it is not social isolation; look instead at self-efficacy, attendance and the resources behind them.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ VIEW: GAP EXPLORER ============ -->
+  <div class="view" id="view-explorer">
+    <div class="ctrl-row">
+      <div class="ctrl"><div class="ctrl-label">Lens</div><div class="btn-group" id="expLens"></div></div>
+    </div>
+    <div class="legend" id="expLegend"></div>
+    <div id="expPanels"></div>
+  </div>
+
+  <!-- ============ VIEW: TRENDS ============ -->
+  <div class="view" id="view-trends">
+    <div class="ctrl-row">
+      <div class="ctrl"><div class="ctrl-label">Lens</div><div class="btn-group" id="trLens"></div></div>
+      <div class="ctrl"><div class="ctrl-label">Metric</div><select id="trMetric">
+        <option value="failed_year">Failed a year (%)</option>
+        <option value="withdrawn">Withdrew (%)</option>
+        <option value="avg_mark">Average mark</option>
+        <option value="good_honours">Good honours % (by graduating cohort)</option>
+        <option value="overall_satisfaction">NSS overall satisfaction (/5)</option>
+      </select></div>
+    </div>
+    <div class="legend" id="trLegend"></div>
+    <div class="panel"><div class="panel-head"><div class="panel-title" id="trTitle">Trend</div><div class="panel-sub">Cohort averages per academic year. Good honours is plotted by graduating cohort (from AY1048-49).</div></div>
+    <div class="panel-body"><div class="chart-h-lg"><canvas id="trChart"></canvas></div></div></div>
+    <div class="note"><b>Reading:</b> if the lines are parallel, the gap is stable and structural; if they diverge, something in recent cohorts is widening it; if they converge, an intervention (or cohort change) may be closing it.</div>
+  </div>
+
+  <!-- ============ VIEW: WEEKLY RHYTHM ============ -->
+  <div class="view" id="view-weekly">
+    <div class="ctrl-row">
+      <div class="ctrl"><div class="ctrl-label">Lens</div><div class="btn-group" id="wkLens"></div></div>
+    </div>
+    <div class="legend" id="wkLegend"></div>
+    <div class="grid-2">
+      <div class="panel"><div class="panel-head"><div class="panel-title">Attendance by teaching week</div><div class="panel-sub">% of timetabled sessions attended, weeks 1–12, all years pooled</div></div>
+      <div class="panel-body"><div class="chart-h-md"><canvas id="wkAtt"></canvas></div></div></div>
+      <div class="panel"><div class="panel-head"><div class="panel-title">VLE logins by teaching week</div><div class="panel-sub">Mean weekly logins per student-module</div></div>
+      <div class="panel-body"><div class="chart-h-md"><canvas id="wkVle"></canvas></div></div></div>
+    </div>
+    <div class="note"><b>Why this matters for early-alert:</b> the attendance gap between groups is present from <b>week 1</b> and widens through the semester — meaning disadvantage is visible in engagement data months before it appears in any assessment record. A tutor dashboard watching weeks 3–5 attendance would catch most of the at-risk signal.</div>
+  </div>
+
+  <!-- ============ VIEW: FACULTY & PROGRAMMES ============ -->
+  <div class="view" id="view-faculty">
+    <div class="ctrl-row">
+      <div class="ctrl"><div class="ctrl-label">Lens</div><div class="btn-group" id="facLens"></div></div>
+      <div class="ctrl"><div class="ctrl-label">Metric</div><select id="facMetric">
+        <option value="good_honours">Achieved First/2:1 (%)</option>
+        <option value="failed_year">Failed a year (%)</option>
+      </select></div>
+    </div>
+    <div class="legend" id="facLegend"></div>
+    <div class="panel"><div class="panel-head"><div class="panel-title" id="facTitle">By faculty</div><div class="panel-sub">Groups with fewer than 30 records in a faculty are suppressed</div></div>
+    <div class="panel-body"><div class="chart-h-lg"><canvas id="facChart"></canvas></div></div></div>
+
+    <div class="panel"><div class="panel-head"><div class="panel-title">Programme league — click a column header to sort</div><div class="panel-sub">SEC gap = high-SEC good-honours % minus low-SEC, within the programme. Cells suppressed under n=30 (n=20 per band for SEC gap).</div></div>
+    <div class="panel-body" style="overflow-x:auto;"><table class="pt" id="progTable"></table></div></div>
+  </div>
+
+  <!-- ============ VIEW: INTERSECTIONS ============ -->
+  <div class="view" id="view-inter">
+    <div class="ctrl-row">
+      <div class="ctrl"><div class="ctrl-label">Lens A (rows)</div><select id="intA"></select></div>
+      <div class="ctrl"><div class="ctrl-label">Lens B (columns)</div><select id="intB"></select></div>
+      <div class="ctrl"><div class="ctrl-label">Metric</div><select id="intMetric"></select></div>
+    </div>
+    <div class="panel"><div class="panel-head"><div class="panel-title" id="intTitle">Intersection</div><div class="panel-sub">Cell colour scaled to metric range. n shown under each value; cells under n=30 suppressed.</div></div>
+    <div class="panel-body" style="overflow-x:auto;"><table class="hm" id="intTable"></table></div></div>
+    <div class="note"><b>Why intersect:</b> single-lens averages hide compounding. A disclosed disability costs ~27 pts of good honours on average — but cross it with socio-economic band and the same disability costs far more at the bottom of the SEC scale than at the top. Compound disadvantage is where targeted support budgets do the most work.</div>
+  </div>
+
+  <!-- ============ VIEW: DISTRIBUTIONS ============ -->
+  <div class="view" id="view-dist">
+    <div class="ctrl-row">
+      <div class="ctrl"><div class="ctrl-label">Lens</div><div class="btn-group" id="dsLens"></div></div>
+    </div>
+    <div class="legend" id="dsLegend"></div>
+    <div class="panel"><div class="panel-head"><div class="panel-title">Distribution of yearly average marks</div><div class="panel-sub">% of student-years falling in each 5-mark band. Dashed line = 40 (pass) and 60 (2:1 threshold).</div></div>
+    <div class="panel-body"><div class="chart-h-lg"><canvas id="dsChart"></canvas></div></div></div>
+    <div class="note"><b>Reading:</b> gaps between groups are rarely about the top of the distribution — they're about how much of each group's curve sits below the pass and 2:1 thresholds. Averages compress this; distributions show it.</div>
+  </div>
+
+  <div class="footnote">
+    <b>Instrument notes —</b> Stonegrove is a synthetic institutional dataset (35,001 students, AY1046-47 to 1052-53, 55 programmes across 5 faculties) built for the Edge Project; ancestry (Dwarf/Elf) and clan act as anonymised demographic proxies alongside real-structure fields for gender, disability disclosure, first-in-family status and an 8-point socio-economic rank. All figures are computed from the enrolment survey, NSS responses, ~2.2m weekly VLE/attendance records, progression outcomes, good-honours classifications and graduate outcomes, joined on student ID. Subgroup cells under n=30 are suppressed throughout. Built to be read lens-by-lens: the point is where the needle moves, not who "wins."
+  </div>
+
+</div>
+
+<script>
+/* DATA:BEGIN */
+const D = {"lens_metrics":{"species":{"label":"Ancestry","groups":[{"name":"Dwarf","n_students":20939,"good_honours":39.8,"first_class":6.7,"avg_degree_mark":58.1,"failed_year":18.4,"withdrawn":9.7,"repeating":12.3,"avg_mark":58.0,"attendance_rate":78.0,"vle_logins":7.38,"vle_resource_views":21.67,"vle_forum_posts":1.35,"employed_any":44.3,"employed_prof":23.5,"further_study":14.8,"salary_band":2.82,"time_to_outcome":5.5,"teaching_quality":4.03,"learning_opportunities":3.86,"assessment_feedback":3.65,"academic_support":3.83,"organisation_management":3.64,"learning_resources":3.81,"student_voice":3.7,"overall_satisfaction":3.77,"career_clarity":3.49,"career_confidence":3.49,"belonging_peers":3.19,"belonging_programme":3.19,"academic_self_efficacy":3.54,"support_satisfaction":3.45},{"name":"Elf","n_students":14061,"good_honours":56.4,"first_class":12.9,"avg_degree_mark":61.4,"failed_year":6.7,"withdrawn":4.6,"repeating":4.9,"avg_mark":65.0,"attendance_rate":83.1,"vle_logins":7.9,"vle_resource_views":23.81,"vle_forum_posts":1.37,"employed_any":44.2,"employed_prof":27.7,"further_study":15.0,"salary_band":3.4,"time_to_outcome":5.7,"teaching_quality":4.19,"learning_opportunities":4.0,"assessment_feedback":3.9,"academic_support":3.99,"organisation_management":3.8,"learning_resources":3.92,"student_voice":3.84,"overall_satisfaction":3.98,"career_clarity":3.6,"career_confidence":3.6,"belonging_peers":3.12,"belonging_programme":3.12,"academic_self_efficacy":3.74,"support_satisfaction":3.48}]},"gender_label":{"label":"Gender","groups":[{"name":"Male","n_students":15882,"good_honours":48.0,"first_class":9.5,"avg_degree_mark":59.7,"failed_year":13.7,"withdrawn":7.6,"repeating":9.4,"avg_mark":60.7,"attendance_rate":80.1,"vle_logins":7.57,"vle_resource_views":22.49,"vle_forum_posts":1.36,"employed_any":43.1,"employed_prof":24.8,"further_study":15.2,"salary_band":3.1,"time_to_outcome":5.5,"teaching_quality":4.1,"learning_opportunities":3.92,"assessment_feedback":3.75,"academic_support":3.89,"organisation_management":3.71,"learning_resources":3.86,"student_voice":3.78,"overall_satisfaction":3.85,"career_clarity":3.54,"career_confidence":3.53,"belonging_peers":3.16,"belonging_programme":3.16,"academic_self_efficacy":3.62,"support_satisfaction":3.46},{"name":"Female","n_students":15458,"good_honours":47.0,"first_class":9.3,"avg_degree_mark":59.6,"failed_year":13.9,"withdrawn":7.7,"repeating":9.4,"avg_mark":60.8,"attendance_rate":79.9,"vle_logins":7.59,"vle_resource_views":22.53,"vle_forum_posts":1.36,"employed_any":45.7,"employed_prof":26.4,"further_study":14.9,"salary_band":3.11,"time_to_outcome":5.6,"teaching_quality":4.11,"learning_opportunities":3.93,"assessment_feedback":3.77,"academic_support":3.91,"organisation_management":3.72,"learning_resources":3.87,"student_voice":3.76,"overall_satisfaction":3.88,"career_clarity":3.53,"career_confidence":3.53,"belonging_peers":3.16,"belonging_programme":3.16,"academic_self_efficacy":3.62,"support_satisfaction":3.46},{"name":"Neuter","n_students":3660,"good_honours":48.3,"first_class":10.8,"avg_degree_mark":59.9,"failed_year":13.5,"withdrawn":7.4,"repeating":9.3,"avg_mark":60.8,"attendance_rate":80.1,"vle_logins":7.6,"vle_resource_views":22.58,"vle_forum_posts":1.34,"employed_any":43.4,"employed_prof":24.1,"further_study":13.5,"salary_band":2.99,"time_to_outcome":5.5,"teaching_quality":4.04,"learning_opportunities":3.86,"assessment_feedback":3.7,"academic_support":3.85,"organisation_management":3.68,"learning_resources":3.81,"student_voice":3.72,"overall_satisfaction":3.8,"career_clarity":3.53,"career_confidence":3.53,"belonging_peers":3.16,"belonging_programme":3.16,"academic_self_efficacy":3.63,"support_satisfaction":3.47}]},"has_disability":{"label":"Disability","groups":[{"name":"No known disability","n_students":22693,"good_honours":54.8,"first_class":12.2,"avg_degree_mark":61.0,"failed_year":8.1,"withdrawn":5.3,"repeating":5.9,"avg_mark":63.9,"attendance_rate":82.8,"vle_logins":7.77,"vle_resource_views":23.31,"vle_forum_posts":1.39,"employed_any":44.4,"employed_prof":27.3,"further_study":15.2,"salary_band":3.2,"time_to_outcome":5.6,"teaching_quality":4.17,"learning_opportunities":3.95,"assessment_feedback":3.89,"academic_support":4.1,"organisation_management":3.84,"learning_resources":3.91,"student_voice":3.79,"overall_satisfaction":3.99,"career_clarity":3.56,"career_confidence":3.56,"belonging_peers":3.16,"belonging_programme":3.16,"academic_self_efficacy":3.65,"support_satisfaction":3.48},{"name":"Disability disclosed","n_students":12307,"good_honours":27.6,"first_class":2.4,"avg_degree_mark":56.0,"failed_year":24.0,"withdrawn":11.9,"repeating":15.8,"avg_mark":55.0,"attendance_rate":75.0,"vle_logins":7.24,"vle_resource_views":21.06,"vle_forum_posts":1.29,"employed_any":44.0,"employed_prof":20.4,"further_study":14.0,"salary_band":2.78,"time_to_outcome":5.7,"teaching_quality":3.94,"learning_opportunities":3.84,"assessment_feedback":3.45,"academic_support":3.44,"organisation_management":3.41,"learning_resources":3.74,"student_voice":3.69,"overall_satisfaction":3.57,"career_clarity":3.49,"career_confidence":3.48,"belonging_peers":3.17,"belonging_programme":3.17,"academic_self_efficacy":3.56,"support_satisfaction":3.43}]},"first_gen_label":{"label":"First-in-family","groups":[{"name":"Continuing-ed family","n_students":23044,"good_honours":53.6,"first_class":12.0,"avg_degree_mark":60.8,"failed_year":10.5,"withdrawn":6.5,"repeating":7.3,"avg_mark":62.8,"attendance_rate":81.8,"vle_logins":7.66,"vle_resource_views":22.81,"vle_forum_posts":1.33,"employed_any":43.9,"employed_prof":27.3,"further_study":15.1,"salary_band":3.35,"time_to_outcome":5.6,"teaching_quality":4.14,"learning_opportunities":3.96,"assessment_feedback":3.84,"academic_support":3.95,"organisation_management":3.77,"learning_resources":3.89,"student_voice":3.78,"overall_satisfaction":3.93,"career_clarity":3.57,"career_confidence":3.57,"belonging_peers":3.13,"belonging_programme":3.13,"academic_self_efficacy":3.84,"support_satisfaction":3.46},{"name":"First-in-family","n_students":11956,"good_honours":33.5,"first_class":3.8,"avg_degree_mark":56.9,"failed_year":19.8,"withdrawn":9.8,"repeating":13.3,"avg_mark":56.9,"attendance_rate":76.8,"vle_logins":7.43,"vle_resource_views":21.96,"vle_forum_posts":1.4,"employed_any":45.1,"employed_prof":21.2,"further_study":14.3,"salary_band":2.5,"time_to_outcome":5.6,"teaching_quality":4.01,"learning_opportunities":3.84,"assessment_feedback":3.59,"academic_support":3.8,"organisation_management":3.59,"learning_resources":3.79,"student_voice":3.72,"overall_satisfaction":3.72,"career_clarity":3.46,"career_confidence":3.46,"belonging_peers":3.23,"belonging_programme":3.23,"academic_self_efficacy":3.19,"support_satisfaction":3.48}]},"sec_band":{"label":"Socio-economic band","groups":[{"name":"Low (SEC 1-3)","n_students":12577,"good_honours":21.9,"first_class":1.2,"avg_degree_mark":55.0,"failed_year":25.0,"withdrawn":11.8,"repeating":16.7,"avg_mark":54.0,"attendance_rate":73.8,"vle_logins":7.39,"vle_resource_views":21.68,"vle_forum_posts":1.43,"employed_any":45.7,"employed_prof":18.8,"further_study":15.2,"salary_band":2.05,"time_to_outcome":5.4,"teaching_quality":3.88,"learning_opportunities":3.75,"assessment_feedback":3.42,"academic_support":3.67,"organisation_management":3.45,"learning_resources":3.69,"student_voice":3.65,"overall_satisfaction":3.57,"career_clarity":3.39,"career_confidence":3.39,"belonging_peers":3.28,"belonging_programme":3.29,"academic_self_efficacy":3.39,"support_satisfaction":3.51},{"name":"Mid (SEC 4-6)","n_students":14352,"good_honours":50.0,"first_class":8.3,"avg_degree_mark":60.0,"failed_year":8.8,"withdrawn":5.8,"repeating":6.2,"avg_mark":62.9,"attendance_rate":82.8,"vle_logins":7.61,"vle_resource_views":22.77,"vle_forum_posts":1.35,"employed_any":43.4,"employed_prof":25.6,"further_study":14.5,"salary_band":3.15,"time_to_outcome":5.8,"teaching_quality":4.17,"learning_opportunities":3.98,"assessment_feedback":3.86,"academic_support":3.98,"organisation_management":3.8,"learning_resources":3.92,"student_voice":3.83,"overall_satisfaction":3.96,"career_clarity":3.57,"career_confidence":3.56,"belonging_peers":3.13,"belonging_programme":3.13,"academic_self_efficacy":3.68,"support_satisfaction":3.47},{"name":"High (SEC 7-8)","n_students":8071,"good_honours":68.0,"first_class":19.4,"avg_degree_mark":63.5,"failed_year":4.2,"withdrawn":4.2,"repeating":3.0,"avg_mark":68.0,"attendance_rate":85.5,"vle_logins":7.84,"vle_resource_views":23.42,"vle_forum_posts":1.24,"employed_any":44.4,"employed_prof":31.5,"further_study":15.1,"salary_band":4.02,"time_to_outcome":5.5,"teaching_quality":4.26,"learning_opportunities":4.03,"assessment_feedback":4.04,"academic_support":4.06,"organisation_management":3.9,"learning_resources":3.97,"student_voice":3.81,"overall_satisfaction":4.08,"career_clarity":3.7,"career_confidence":3.7,"belonging_peers":3.03,"belonging_programme":3.03,"academic_self_efficacy":3.87,"support_satisfaction":3.39}]}},"trends":{"species":{"label":"Ancestry","years":["1046-47","1047-48","1048-49","1049-50","1050-51","1051-52","1052-53"],"grad_years":["1048-49","1049-50","1050-51","1051-52","1052-53"],"groups":{"Dwarf":{"failed_year":[14.3,15.2,17.3,18.7,19.8,20.3,20.3],"withdrawn":[9.9,9.4,8.8,10.0,10.3,9.3,10.0],"avg_mark":[59.4,59.0,58.1,58.0,57.7,57.4,57.4],"good_honours":[41.8,39.7,39.1,41.0,37.6],"overall_satisfaction":[null,null,3.84,3.78,3.77,3.75,3.73]},"Elf":{"failed_year":[4.2,4.6,6.6,6.9,7.4,8.0,7.6],"withdrawn":[4.0,4.2,4.9,4.5,4.4,4.5,5.1],"avg_mark":[67.1,66.0,64.9,64.4,64.5,64.6,64.4],"good_honours":[60.9,55.4,54.8,58.1,53.3],"overall_satisfaction":[null,null,4.05,3.98,3.98,3.97,3.95]}}},"gender_label":{"label":"Gender","years":["1046-47","1047-48","1048-49","1049-50","1050-51","1051-52","1052-53"],"grad_years":["1048-49","1049-50","1050-51","1051-52","1052-53"],"groups":{"Male":{"failed_year":[10.4,11.2,13.5,13.8,14.2,15.6,15.0],"withdrawn":[7.7,7.3,7.3,7.6,8.0,7.8,7.7],"avg_mark":[62.8,61.7,60.5,60.4,60.5,60.2,60.2],"good_honours":[50.0,47.3,45.5,51.2,45.9],"overall_satisfaction":[null,null,3.92,3.87,3.86,3.82,3.79]},"Female":{"failed_year":[10.2,10.6,12.5,14.3,16.0,15.5,15.5],"withdrawn":[7.2,7.5,7.2,8.2,8.2,7.2,8.3],"avg_mark":[62.4,61.9,61.1,60.4,60.2,60.3,60.3],"good_honours":[54.2,44.6,46.9,46.2,44.7],"overall_satisfaction":[null,null,3.96,3.87,3.88,3.85,3.88]},"Neuter":{"failed_year":[9.6,11.1,13.2,15.2,14.3,14.3,14.7],"withdrawn":[8.0,6.7,7.1,8.1,7.5,6.3,8.1],"avg_mark":[62.2,61.6,61.2,60.5,60.4,60.5,60.2],"good_honours":[50.4,52.6,46.9,47.9,44.1],"overall_satisfaction":[null,null,3.93,3.82,3.71,3.84,3.73]}}},"has_disability":{"label":"Disability","years":["1046-47","1047-48","1048-49","1049-50","1050-51","1051-52","1052-53"],"grad_years":["1048-49","1049-50","1050-51","1051-52","1052-53"],"groups":{"No known disability":{"failed_year":[5.3,6.1,7.4,8.5,9.2,9.7,8.8],"withdrawn":[5.1,5.0,5.0,5.7,5.7,5.2,5.5],"avg_mark":[65.8,64.9,63.9,63.4,63.5,63.4,63.6],"good_honours":[58.7,53.5,54.3,54.8,53.3],"overall_satisfaction":[null,null,4.05,3.99,3.98,3.96,3.97]},"Disability disclosed":{"failed_year":[19.1,19.5,23.2,24.9,25.7,25.8,26.7],"withdrawn":[11.9,11.4,11.2,12.1,12.4,11.4,12.6],"avg_mark":[56.6,56.3,55.3,54.8,54.5,54.5,54.3],"good_honours":[31.9,27.8,26.0,30.6,22.8],"overall_satisfaction":[null,null,3.67,3.57,3.57,3.56,3.5]}}},"first_gen_label":{"label":"First-in-family","years":["1046-47","1047-48","1048-49","1049-50","1050-51","1051-52","1052-53"],"grad_years":["1048-49","1049-50","1050-51","1051-52","1052-53"],"groups":{"Continuing-ed family":{"failed_year":[7.5,8.1,10.5,10.6,11.4,11.9,11.6],"withdrawn":[6.2,6.4,6.7,6.5,6.6,6.3,6.8],"avg_mark":[64.6,63.7,62.8,62.5,62.4,62.3,62.4],"good_honours":[57.0,53.0,51.8,55.5,51.3],"overall_satisfaction":[null,null,4.01,3.93,3.92,3.92,3.89]},"First-in-family":{"failed_year":[15.6,16.4,17.8,20.6,21.5,22.1,21.7],"withdrawn":[10.1,9.2,8.2,10.6,10.6,9.4,10.2],"avg_mark":[58.4,58.0,57.1,56.6,56.6,56.6,56.3],"good_honours":[38.0,31.9,34.1,34.1,30.4],"overall_satisfaction":[null,null,3.77,3.73,3.73,3.67,3.7]}}},"sec_band":{"label":"Socio-economic band","years":["1046-47","1047-48","1048-49","1049-50","1050-51","1051-52","1052-53"],"grad_years":["1048-49","1049-50","1050-51","1051-52","1052-53"],"groups":{"Low (SEC 1-3)":{"failed_year":[20.4,21.4,22.9,25.1,26.9,27.8,27.3],"withdrawn":[12.0,12.0,10.6,12.2,12.2,11.4,12.1],"avg_mark":[55.1,54.9,54.3,54.0,53.7,53.5,53.4],"good_honours":[27.1,20.6,21.1,22.7,19.7],"overall_satisfaction":[null,null,3.63,3.61,3.55,3.57,3.51]},"Mid (SEC 4-6)":{"failed_year":[5.8,6.0,9.1,8.9,9.5,10.1,10.0],"withdrawn":[5.2,5.2,6.0,5.8,5.9,5.9,6.4],"avg_mark":[64.7,63.9,62.8,62.6,62.5,62.4,62.5],"good_honours":[53.1,50.0,48.8,52.2,46.3],"overall_satisfaction":[null,null,3.97,3.95,3.94,3.98,3.96]},"High (SEC 7-8)":{"failed_year":[2.3,3.2,4.1,5.2,4.7,4.5,4.3],"withdrawn":[4.5,3.8,4.1,4.4,4.7,3.5,4.2],"avg_mark":[70.3,68.8,67.8,67.4,67.7,67.6,67.5],"good_honours":[66.8,66.9,67.1,70.8,68.5],"overall_satisfaction":[null,null,4.2,4.06,4.11,3.99,4.03]}}}},"weekly":{"species":{"label":"Ancestry","weeks":[1,2,3,4,5,6,7,8,9,10,11,12],"groups":{"Dwarf":{"attendance":[82.6,82.5,79.5,79.4,79.4,71.0,71.0,70.8,79.3,80.1,80.2,80.3],"vle_logins":[7.37,7.38,7.37,7.38,7.37,7.38,7.38,7.38,7.37,7.38,7.37,7.38]},"Elf":{"attendance":[87.2,86.8,84.4,84.4,84.5,76.7,76.7,76.8,84.3,85.2,85.3,85.3],"vle_logins":[7.89,7.89,7.89,7.89,7.91,7.9,7.91,7.89,7.88,7.92,7.9,7.9]}}},"gender_label":{"label":"Gender","weeks":[1,2,3,4,5,6,7,8,9,10,11,12],"groups":{"Male":{"attendance":[84.4,84.2,81.4,81.5,81.5,73.3,73.4,73.3,81.4,82.3,82.3,82.4],"vle_logins":[7.56,7.56,7.57,7.57,7.56,7.57,7.58,7.56,7.56,7.57,7.57,7.57]},"Female":{"attendance":[84.3,84.1,81.3,81.3,81.4,73.2,73.2,73.2,81.2,82.0,82.1,82.2],"vle_logins":[7.58,7.59,7.58,7.57,7.59,7.58,7.59,7.59,7.59,7.61,7.59,7.59]},"Neuter":{"attendance":[84.8,84.4,81.8,81.5,81.4,73.1,73.2,72.9,81.2,82.2,82.0,82.4],"vle_logins":[7.59,7.6,7.58,7.64,7.61,7.62,7.6,7.6,7.56,7.58,7.59,7.61]}}},"has_disability":{"label":"Disability","weeks":[1,2,3,4,5,6,7,8,9,10,11,12],"groups":{"No known disability":{"attendance":[87.0,86.7,84.1,84.2,84.1,76.0,76.1,76.1,84.0,85.0,85.0,85.1],"vle_logins":[7.76,7.77,7.75,7.77,7.76,7.76,7.78,7.75,7.75,7.78,7.77,7.78]},"Disability disclosed":{"attendance":[79.6,79.5,76.4,76.3,76.5,68.2,68.0,67.9,76.4,76.8,76.9,77.1],"vle_logins":[7.22,7.24,7.25,7.22,7.24,7.25,7.24,7.26,7.25,7.24,7.24,7.24]}}},"first_gen_label":{"label":"First-in-family","weeks":[1,2,3,4,5,6,7,8,9,10,11,12],"groups":{"Continuing-ed family":{"attendance":[85.9,85.7,83.0,83.1,83.1,75.2,75.2,75.3,83.0,83.9,83.9,84.1],"vle_logins":[7.65,7.66,7.66,7.66,7.66,7.66,7.67,7.66,7.65,7.67,7.66,7.67]},"First-in-family":{"attendance":[81.6,81.4,78.4,78.3,78.2,69.7,69.6,69.4,78.2,78.8,78.9,79.0],"vle_logins":[7.44,7.43,7.42,7.43,7.44,7.43,7.44,7.44,7.44,7.43,7.44,7.44]}}},"sec_band":{"label":"Socio-economic band","weeks":[1,2,3,4,5,6,7,8,9,10,11,12],"groups":{"Low (SEC 1-3)":{"attendance":[78.9,78.8,75.3,75.4,75.4,66.2,66.3,66.1,75.2,75.8,75.9,76.0],"vle_logins":[7.39,7.4,7.39,7.39,7.39,7.39,7.4,7.39,7.39,7.39,7.39,7.4]},"Mid (SEC 4-6)":{"attendance":[86.8,86.5,84.0,84.0,84.1,76.3,76.3,76.3,84.0,84.9,84.9,85.0],"vle_logins":[7.61,7.6,7.61,7.61,7.61,7.62,7.61,7.62,7.6,7.62,7.61,7.62]},"High (SEC 7-8)":{"attendance":[89.2,88.8,86.7,86.6,86.5,79.3,79.5,79.3,86.6,87.7,87.8,87.8],"vle_logins":[7.82,7.85,7.81,7.84,7.84,7.83,7.85,7.83,7.82,7.87,7.83,7.83]}}}},"faculty":{"species":{"label":"Ancestry","faculties":["Business & Law School","Craft, Art & Architecture","Culture & Social Sciences","Health & Education","Science & Engineering"],"groups":{"Dwarf":{"good_honours":[40.6,38.6,43.5,42.7,null],"failed_year":[23.7,22.8,13.6,16.9,12.4]},"Elf":{"good_honours":[54.9,56.0,58.8,62.8,null],"failed_year":[9.3,9.0,4.6,5.2,3.8]}}},"gender_label":{"label":"Gender","faculties":["Business & Law School","Craft, Art & Architecture","Culture & Social Sciences","Health & Education","Science & Engineering"],"groups":{"Male":{"good_honours":[49.4,46.2,51.8,53.2,null],"failed_year":[16.8,17.5,9.9,12.5,9.1]},"Female":{"good_honours":[46.9,46.5,49.4,49.1,null],"failed_year":[17.6,17.6,9.6,12.7,9.6]},"Neuter":{"good_honours":[47.6,47.4,51.0,54.7,null],"failed_year":[17.0,16.8,9.1,13.6,9.3]}}},"has_disability":{"label":"Disability","faculties":["Business & Law School","Craft, Art & Architecture","Culture & Social Sciences","Health & Education","Science & Engineering"],"groups":{"No known disability":{"good_honours":[56.9,53.3,56.1,58.4,null],"failed_year":[11.4,11.1,5.1,6.4,4.7]},"Disability disclosed":{"good_honours":[24.6,27.1,35.0,33.3,null],"failed_year":[28.3,29.5,18.0,23.6,17.3]}}},"first_gen_label":{"label":"First-in-family","faculties":["Business & Law School","Craft, Art & Architecture","Culture & Social Sciences","Health & Education","Science & Engineering"],"groups":{"Continuing-ed family":{"good_honours":[54.0,52.6,57.3,56.7,null],"failed_year":[12.5,13.5,7.3,10.1,7.2]},"First-in-family":{"good_honours":[32.7,32.9,36.1,38.2,null],"failed_year":[26.0,24.6,14.3,17.8,13.3]}}},"sec_band":{"label":"Socio-economic band","faculties":["Business & Law School","Craft, Art & Architecture","Culture & Social Sciences","Health & Education","Science & Engineering"],"groups":{"Low (SEC 1-3)":{"good_honours":[20.4,21.0,18.6,32.5,null],"failed_year":[32.2,30.5,18.8,23.2,17.7]},"Mid (SEC 4-6)":{"good_honours":[49.2,49.0,57.7,53.4,null],"failed_year":[11.9,11.9,5.8,6.9,5.5]},"High (SEC 7-8)":{"good_honours":[67.1,67.8,72.2,69.1,null],"failed_year":[5.7,5.8,2.6,3.6,2.2]}}}},"programmes":[{"code":"5_2_4","name":"Modern Technologies","faculty":"Science & Engineering","n":1099,"good_honours":null,"failed_year":4.1,"withdrawn":5.3,"satisfaction":null,"sec_gap":null},{"code":"5_2_6","name":"Mycelial Cultivation and Biotech","faculty":"Science & Engineering","n":1056,"good_honours":null,"failed_year":10.9,"withdrawn":7.1,"satisfaction":null,"sec_gap":null},{"code":"2_2_4","name":"Illustration","faculty":"Craft, Art & Architecture","n":715,"good_honours":43.5,"failed_year":18.8,"withdrawn":8.8,"satisfaction":3.85,"sec_gap":42.6},{"code":"5_3_7","name":"Biology","faculty":"Science & Engineering","n":671,"good_honours":null,"failed_year":7.4,"withdrawn":6.4,"satisfaction":null,"sec_gap":null},{"code":"3_4_8","name":"Ritual and Recollection","faculty":"Culture & Social Sciences","n":570,"good_honours":null,"failed_year":11.7,"withdrawn":9.4,"satisfaction":null,"sec_gap":null},{"code":"2_2_2","name":"Cyanophotography and Printmaking","faculty":"Craft, Art & Architecture","n":655,"good_honours":45.3,"failed_year":16.2,"withdrawn":7.4,"satisfaction":3.9,"sec_gap":42.5},{"code":"5_2_5","name":"Multi-system Technology","faculty":"Science & Engineering","n":739,"good_honours":null,"failed_year":10.1,"withdrawn":7.9,"satisfaction":null,"sec_gap":null},{"code":"4_1_3","name":"Intergenerational Learning","faculty":"Health & Education","n":773,"good_honours":null,"failed_year":12.9,"withdrawn":8.0,"satisfaction":null,"sec_gap":null},{"code":"3_5_10","name":"Economics","faculty":"Culture & Social Sciences","n":891,"good_honours":null,"failed_year":9.9,"withdrawn":7.9,"satisfaction":null,"sec_gap":null},{"code":"3_4_7","name":"Philosophy of Religion and Ethics","faculty":"Culture & Social Sciences","n":702,"good_honours":null,"failed_year":6.4,"withdrawn":5.7,"satisfaction":null,"sec_gap":null},{"code":"4_2_12","name":"Somatic Wellbeing Enquiry","faculty":"Health & Education","n":1048,"good_honours":51.3,"failed_year":14.7,"withdrawn":7.9,"satisfaction":3.86,"sec_gap":36.6},{"code":"1_1_2","name":"Business Management","faculty":"Business & Law School","n":499,"good_honours":46.3,"failed_year":15.0,"withdrawn":6.5,"satisfaction":3.8,"sec_gap":46.4},{"code":"3_2_2","name":"History","faculty":"Culture & Social Sciences","n":540,"good_honours":51.4,"failed_year":16.7,"withdrawn":8.5,"satisfaction":3.97,"sec_gap":50.9},{"code":"3_3_5","name":"Multispecies Linguistics","faculty":"Culture & Social Sciences","n":880,"good_honours":null,"failed_year":8.5,"withdrawn":7.1,"satisfaction":null,"sec_gap":null},{"code":"2_4_12","name":"Space Design","faculty":"Craft, Art & Architecture","n":806,"good_honours":43.8,"failed_year":18.8,"withdrawn":7.4,"satisfaction":3.82,"sec_gap":45.9},{"code":"4_2_4","name":"Herbal Practice and Energy Work","faculty":"Health & Education","n":724,"good_honours":null,"failed_year":5.6,"withdrawn":5.3,"satisfaction":null,"sec_gap":null},{"code":"5_3_9","name":"Chemistry","faculty":"Science & Engineering","n":919,"good_honours":null,"failed_year":11.8,"withdrawn":7.3,"satisfaction":null,"sec_gap":null},{"code":"3_5_9","name":"Conflict Transformation","faculty":"Culture & Social Sciences","n":1035,"good_honours":null,"failed_year":4.2,"withdrawn":6.5,"satisfaction":null,"sec_gap":null},{"code":"3_5_11","name":"Elven Ethics in Modern Governance","faculty":"Culture & Social Sciences","n":516,"good_honours":null,"failed_year":9.2,"withdrawn":6.4,"satisfaction":null,"sec_gap":null},{"code":"4_1_1","name":"Education Studies","faculty":"Health & Education","n":748,"good_honours":null,"failed_year":2.8,"withdrawn":3.7,"satisfaction":null,"sec_gap":null},{"code":"4_1_2","name":"Educational Mentorship","faculty":"Health & Education","n":653,"good_honours":null,"failed_year":8.0,"withdrawn":9.9,"satisfaction":null,"sec_gap":null},{"code":"4_2_5","name":"Integrated Mind-Body","faculty":"Health & Education","n":534,"good_honours":null,"failed_year":9.9,"withdrawn":8.2,"satisfaction":null,"sec_gap":null},{"code":"2_2_6","name":"Music","faculty":"Craft, Art & Architecture","n":471,"good_honours":51.8,"failed_year":19.4,"withdrawn":7.6,"satisfaction":3.91,"sec_gap":49.8},{"code":"3_6_15","name":"Sociology","faculty":"Culture & Social Sciences","n":706,"good_honours":null,"failed_year":7.6,"withdrawn":4.8,"satisfaction":null,"sec_gap":null},{"code":"1_2_1","name":"Law","faculty":"Business & Law School","n":496,"good_honours":36.2,"failed_year":17.9,"withdrawn":7.7,"satisfaction":3.89,"sec_gap":49.6},{"code":"2_3_7","name":"Artefact Restoration","faculty":"Craft, Art & Architecture","n":662,"good_honours":44.1,"failed_year":18.8,"withdrawn":9.3,"satisfaction":3.87,"sec_gap":51.1},{"code":"4_2_8","name":"Occupational Therapy","faculty":"Health & Education","n":636,"good_honours":null,"failed_year":11.0,"withdrawn":8.0,"satisfaction":3.77,"sec_gap":null},{"code":"5_3_10","name":"Environmental Science","faculty":"Science & Engineering","n":650,"good_honours":null,"failed_year":13.3,"withdrawn":7.2,"satisfaction":null,"sec_gap":null},{"code":"3_1_1","name":"Geography","faculty":"Culture & Social Sciences","n":294,"good_honours":49.7,"failed_year":15.6,"withdrawn":8.6,"satisfaction":3.93,"sec_gap":57.5},{"code":"2_1_1","name":"Architecture","faculty":"Craft, Art & Architecture","n":728,"good_honours":46.9,"failed_year":17.2,"withdrawn":8.8,"satisfaction":3.89,"sec_gap":48.0},{"code":"5_1_2","name":"Mechanical Engineering","faculty":"Science & Engineering","n":473,"good_honours":null,"failed_year":2.9,"withdrawn":6.2,"satisfaction":null,"sec_gap":null},{"code":"2_4_10","name":"Fashion Design","faculty":"Craft, Art & Architecture","n":584,"good_honours":45.5,"failed_year":15.9,"withdrawn":7.0,"satisfaction":3.79,"sec_gap":44.7},{"code":"2_2_5","name":"Media Studies","faculty":"Craft, Art & Architecture","n":651,"good_honours":50.0,"failed_year":16.3,"withdrawn":6.7,"satisfaction":3.89,"sec_gap":36.8},{"code":"2_2_3","name":"Fine Art","faculty":"Craft, Art & Architecture","n":658,"good_honours":49.8,"failed_year":16.4,"withdrawn":8.1,"satisfaction":3.92,"sec_gap":53.3},{"code":"4_2_6","name":"Midwifery","faculty":"Health & Education","n":608,"good_honours":null,"failed_year":14.9,"withdrawn":8.9,"satisfaction":null,"sec_gap":null},{"code":"2_3_8","name":"Brewcraft and Fermentation Systems","faculty":"Craft, Art & Architecture","n":815,"good_honours":49.6,"failed_year":17.5,"withdrawn":7.4,"satisfaction":3.9,"sec_gap":48.2},{"code":"5_1_3","name":"Systems Engineering","faculty":"Science & Engineering","n":590,"good_honours":null,"failed_year":9.8,"withdrawn":7.7,"satisfaction":null,"sec_gap":null},{"code":"3_4_6","name":"Ceremonies","faculty":"Culture & Social Sciences","n":582,"good_honours":null,"failed_year":4.4,"withdrawn":3.9,"satisfaction":null,"sec_gap":null},{"code":"5_3_11","name":"Mathematics","faculty":"Science & Engineering","n":415,"good_honours":null,"failed_year":9.4,"withdrawn":8.0,"satisfaction":3.79,"sec_gap":null},{"code":"3_3_3","name":"Languages and Literature","faculty":"Culture & Social Sciences","n":515,"good_honours":null,"failed_year":4.9,"withdrawn":5.7,"satisfaction":null,"sec_gap":null},{"code":"3_5_12","name":"Narrative Governance and Institution Building","faculty":"Culture & Social Sciences","n":523,"good_honours":null,"failed_year":18.9,"withdrawn":12.0,"satisfaction":null,"sec_gap":null},{"code":"1_1_3","name":"Entrepreneurship and Trade","faculty":"Business & Law School","n":554,"good_honours":51.8,"failed_year":17.7,"withdrawn":8.3,"satisfaction":3.9,"sec_gap":43.6},{"code":"2_3_9","name":"Precision Smithing and Design","faculty":"Craft, Art & Architecture","n":401,"good_honours":49.0,"failed_year":15.1,"withdrawn":7.0,"satisfaction":3.82,"sec_gap":47.5},{"code":"3_5_13","name":"Politics and Relations","faculty":"Culture & Social Sciences","n":711,"good_honours":null,"failed_year":10.2,"withdrawn":7.1,"satisfaction":3.84,"sec_gap":null},{"code":"3_6_14","name":"Psychology","faculty":"Culture & Social Sciences","n":1068,"good_honours":null,"failed_year":5.4,"withdrawn":5.3,"satisfaction":null,"sec_gap":null},{"code":"5_3_8","name":"Biomedical Science","faculty":"Science & Engineering","n":346,"good_honours":null,"failed_year":10.3,"withdrawn":13.6,"satisfaction":null,"sec_gap":null},{"code":"4_2_11","name":"Social Work","faculty":"Health & Education","n":548,"good_honours":null,"failed_year":17.4,"withdrawn":9.3,"satisfaction":3.87,"sec_gap":null},{"code":"2_4_11","name":"Graphic Design","faculty":"Craft, Art & Architecture","n":313,"good_honours":34.2,"failed_year":19.0,"withdrawn":8.4,"satisfaction":3.81,"sec_gap":51.5},{"code":"4_2_7","name":"Nursing and Care","faculty":"Health & Education","n":670,"good_honours":null,"failed_year":17.2,"withdrawn":10.7,"satisfaction":null,"sec_gap":null},{"code":"1_1_1","name":"Accounting & Finance","faculty":"Business & Law School","n":381,"good_honours":57.3,"failed_year":15.4,"withdrawn":6.4,"satisfaction":3.87,"sec_gap":56.2},{"code":"1_1_4","name":"Hospitality and Tourism Management","faculty":"Business & Law School","n":504,"good_honours":45.6,"failed_year":18.1,"withdrawn":8.2,"satisfaction":3.87,"sec_gap":41.7},{"code":"4_2_10","name":"Physiotherapy","faculty":"Health & Education","n":634,"good_honours":null,"failed_year":15.4,"withdrawn":9.3,"satisfaction":3.81,"sec_gap":null},{"code":"1_1_5","name":"Person Resource Management","faculty":"Business & Law School","n":415,"good_honours":53.5,"failed_year":18.6,"withdrawn":8.3,"satisfaction":3.84,"sec_gap":45.4},{"code":"4_2_9","name":"Pharmacy","faculty":"Health & Education","n":395,"good_honours":null,"failed_year":15.0,"withdrawn":9.1,"satisfaction":3.66,"sec_gap":null},{"code":"5_3_12","name":"Physics","faculty":"Science & Engineering","n":230,"good_honours":null,"failed_year":13.8,"withdrawn":8.3,"satisfaction":3.89,"sec_gap":null}],"intersections":{"species|gender_label":{"rows":["Dwarf","Elf"],"cols":["Male","Female","Neuter"],"row_label":"Ancestry","col_label":"Gender","metrics":{"good_honours":{"label":"Achieved First/2:1 (%)","values":[[40.5,38.5,41.5],[56.3,56.3,57.4]],"n":[[1463,1393,359],[1302,1282,272]]},"failed_year":{"label":"Failed a year (%)","values":[[18.3,18.6,17.5],[6.6,6.7,6.9]],"n":[[15946,15417,3792],[10419,10241,2295]]},"withdrawn":{"label":"Withdrew (%)","values":[[9.6,9.8,9.1],[4.6,4.5,4.5]],"n":[[15946,15417,3792],[10419,10241,2295]]},"overall_satisfaction":{"label":"NSS overall satisfaction (/5)","values":[[3.78,3.78,3.67],[3.95,4.02,4.0]],"n":[[2554,2489,634],[1854,1853,418]]},"academic_self_efficacy":{"label":"Academic self-efficacy (/5)","values":[[3.53,3.54,3.56],[3.75,3.74,3.73]],"n":[[20449,19742,4879],[13680,13466,3022]]},"employed_prof":{"label":"Professional employment (%)","values":[[23.4,23.7,22.6],[26.4,29.3,26.1]],"n":[[1463,1393,359],[1302,1282,272]]}}},"species|has_disability":{"rows":["Dwarf","Elf"],"cols":["No known disability","Disability disclosed"],"row_label":"Ancestry","col_label":"Disability","metrics":{"good_honours":{"label":"Achieved First/2:1 (%)","values":[[47.2,20.0],[63.0,36.8]],"n":[[2334,881],[2134,722]]},"failed_year":{"label":"Failed a year (%)","values":[[10.9,30.1],[4.5,11.8]],"n":[[21436,13719],[16097,6858]]},"withdrawn":{"label":"Withdrew (%)","values":[[6.6,14.6],[3.7,6.5]],"n":[[21436,13719],[16097,6858]]},"overall_satisfaction":{"label":"NSS overall satisfaction (/5)","values":[[3.9,3.49],[4.1,3.69]],"n":[[3854,1823],[2956,1169]]},"academic_self_efficacy":{"label":"Academic self-efficacy (/5)","values":[[3.57,3.48],[3.75,3.72]],"n":[[27835,17235],[21156,9012]]},"employed_prof":{"label":"Professional employment (%)","values":[[25.5,17.9],[29.1,23.4]],"n":[[2334,881],[2134,722]]}}},"species|first_gen_label":{"rows":["Dwarf","Elf"],"cols":["Continuing-ed family","First-in-family"],"row_label":"Ancestry","col_label":"First-in-family","metrics":{"good_honours":{"label":"Achieved First/2:1 (%)","values":[[46.6,28.1],[60.1,43.6]],"n":[[2032,1183],[2218,638]]},"failed_year":{"label":"Failed a year (%)","values":[[14.6,23.6],[5.7,9.9]],"n":[[20481,14674],[17353,5602]]},"withdrawn":{"label":"Withdrew (%)","values":[[8.4,11.4],[4.2,5.5]],"n":[[20481,14674],[17353,5602]]},"overall_satisfaction":{"label":"NSS overall satisfaction (/5)","values":[[3.85,3.65],[4.02,3.87]],"n":[[3376,2301],[3147,978]]},"academic_self_efficacy":{"label":"Academic self-efficacy (/5)","values":[[3.8,3.16],[3.9,3.27]],"n":[[26579,18491],[22832,7336]]},"employed_prof":{"label":"Professional employment (%)","values":[[25.1,20.6],[29.3,22.3]],"n":[[2032,1183],[2218,638]]}}},"species|sec_band":{"rows":["Dwarf","Elf"],"cols":["Low (SEC 1-3)","Mid (SEC 4-6)","High (SEC 7-8)"],"row_label":"Ancestry","col_label":"Socio-economic band","metrics":{"good_honours":{"label":"Achieved First/2:1 (%)","values":[[19.8,46.2,64.5],[27.7,54.2,69.8]],"n":[[1189,1443,583],[433,1283,1140]]},"failed_year":{"label":"Failed a year (%)","values":[[27.6,10.8,5.6],[14.5,6.2,3.4]],"n":[[17333,13251,4571],[4179,10253,8523]]},"withdrawn":{"label":"Withdrew (%)","values":[[12.9,6.9,5.5],[7.2,4.4,3.4]],"n":[[17333,13251,4571],[4179,10253,8523]]},"overall_satisfaction":{"label":"NSS overall satisfaction (/5)","values":[[3.53,3.93,4.04],[3.69,4.0,4.1]],"n":[[2518,2335,824],[747,1818,1560]]},"academic_self_efficacy":{"label":"Academic self-efficacy (/5)","values":[[3.37,3.65,3.83],[3.48,3.72,3.89]],"n":[[21807,17292,5971],[5398,13508,11262]]},"employed_prof":{"label":"Professional employment (%)","values":[[18.4,25.1,29.7],[19.9,26.2,32.4]],"n":[[1189,1443,583],[433,1283,1140]]}}},"gender_label|has_disability":{"rows":["Male","Female","Neuter"],"cols":["No known disability","Disability disclosed"],"row_label":"Gender","col_label":"Disability","metrics":{"good_honours":{"label":"Achieved First/2:1 (%)","values":[[55.2,28.0],[54.0,27.6],[56.3,25.6]],"n":[[2029,736],[1972,703],[467,164]]},"failed_year":{"label":"Failed a year (%)","values":[[8.0,24.1],[8.3,24.1],[8.2,23.4]],"n":[[17033,9332],[16549,9109],[3951,2136]]},"withdrawn":{"label":"Withdrew (%)","values":[[5.3,11.9],[5.4,12.0],[5.3,11.2]],"n":[[17033,9332],[16549,9109],[3951,2136]]},"overall_satisfaction":{"label":"NSS overall satisfaction (/5)","values":[[3.98,3.57],[4.0,3.6],[3.96,3.47]],"n":[[3027,1381],[3077,1265],[706,346]]},"academic_self_efficacy":{"label":"Academic self-efficacy (/5)","values":[[3.65,3.56],[3.65,3.56],[3.65,3.57]],"n":[[22233,11896],[21577,11631],[5181,2720]]},"employed_prof":{"label":"Professional employment (%)","values":[[26.4,20.5],[28.7,20.1],[25.1,21.3]],"n":[[2029,736],[1972,703],[467,164]]}}},"gender_label|first_gen_label":{"rows":["Male","Female","Neuter"],"cols":["Continuing-ed family","First-in-family"],"row_label":"Gender","col_label":"First-in-family","metrics":{"good_honours":{"label":"Achieved First/2:1 (%)","values":[[55.2,31.3],[52.2,34.9],[52.6,37.1]],"n":[[1926,839],[1868,807],[456,175]]},"failed_year":{"label":"Failed a year (%)","values":[[10.2,20.2],[10.8,19.7],[10.8,18.7]],"n":[[17107,9258],[16713,8945],[4014,2073]]},"withdrawn":{"label":"Withdrew (%)","values":[[6.4,9.9],[6.6,9.9],[6.7,8.8]],"n":[[17107,9258],[16713,8945],[4014,2073]]},"overall_satisfaction":{"label":"NSS overall satisfaction (/5)","values":[[3.93,3.69],[3.95,3.75],[3.87,3.65]],"n":[[2887,1521],[2911,1431],[725,327]]},"academic_self_efficacy":{"label":"Academic self-efficacy (/5)","values":[[3.84,3.19],[3.85,3.19],[3.84,3.19]],"n":[[22398,11731],[21783,11425],[5230,2671]]},"employed_prof":{"label":"Professional employment (%)","values":[[27.2,19.4],[27.9,22.9],[25.0,21.7]],"n":[[1926,839],[1868,807],[456,175]]}}},"gender_label|sec_band":{"rows":["Male","Female","Neuter"],"cols":["Low (SEC 1-3)","Mid (SEC 4-6)","High (SEC 7-8)"],"row_label":"Gender","col_label":"Socio-economic band","metrics":{"good_honours":{"label":"Achieved First/2:1 (%)","values":[[21.3,50.3,68.5],[22.2,49.9,66.4],[23.2,48.6,72.5]],"n":[[729,1232,804],[725,1202,748],[168,292,171]]},"failed_year":{"label":"Failed a year (%)","values":[[25.1,8.7,4.2],[25.1,8.9,4.3],[24.4,9.0,3.4]],"n":[[9732,10662,5971],[9514,10384,5760],[2266,2458,1363]]},"withdrawn":{"label":"Withdrew (%)","values":[[11.9,5.7,4.1],[11.9,5.8,4.3],[10.7,6.3,3.7]],"n":[[9732,10662,5971],[9514,10384,5760],[2266,2458,1363]]},"overall_satisfaction":{"label":"NSS overall satisfaction (/5)","values":[[3.55,3.96,4.05],[3.6,3.97,4.12],[3.53,3.9,4.05]],"n":[[1462,1860,1086],[1441,1845,1056],[362,448,242]]},"academic_self_efficacy":{"label":"Academic self-efficacy (/5)","values":[[3.39,3.68,3.87],[3.39,3.68,3.87],[3.41,3.69,3.87]],"n":[[12304,13983,7842],[12011,13639,7558],[2890,3178,1833]]},"employed_prof":{"label":"Professional employment (%)","values":[[18.8,24.3,31.2],[18.8,27.3,32.4],[19.0,24.3,28.7]],"n":[[729,1232,804],[725,1202,748],[168,292,171]]}}},"has_disability|first_gen_label":{"rows":["No known disability","Disability disclosed"],"cols":["Continuing-ed family","First-in-family"],"row_label":"Disability","col_label":"First-in-family","metrics":{"good_honours":{"label":"Achieved First/2:1 (%)","values":[[61.4,39.3],[31.9,17.7]],"n":[[3133,1335],[1117,486]]},"failed_year":{"label":"Failed a year (%)","values":[[5.9,12.6],[19.4,31.7]],"n":[[24943,12590],[12891,7686]]},"withdrawn":{"label":"Withdrew (%)","values":[[4.6,6.7],[10.1,14.8]],"n":[[24943,12590],[12891,7686]]},"overall_satisfaction":{"label":"NSS overall satisfaction (/5)","values":[[4.06,3.84],[3.64,3.43]],"n":[[4552,2258],[1971,1021]]},"academic_self_efficacy":{"label":"Academic self-efficacy (/5)","values":[[3.86,3.22],[3.81,3.14]],"n":[[32763,16228],[16648,9599]]},"employed_prof":{"label":"Professional employment (%)","values":[[29.5,22.1],[21.1,18.7]],"n":[[3133,1335],[1117,486]]}}},"has_disability|sec_band":{"rows":["No known disability","Disability disclosed"],"cols":["Low (SEC 1-3)","Mid (SEC 4-6)","High (SEC 7-8)"],"row_label":"Disability","col_label":"Socio-economic band","metrics":{"good_honours":{"label":"Achieved First/2:1 (%)","values":[[27.9,57.2,76.6],[4.8,29.3,45.2]],"n":[[1201,2017,1250],[421,709,473]]},"failed_year":{"label":"Failed a year (%)","values":[[15.9,5.0,2.5],[38.3,16.3,7.9]],"n":[[12764,15716,9053],[8748,7788,4041]]},"withdrawn":{"label":"Withdrew (%)","values":[[8.1,4.3,3.3],[17.2,8.9,6.1]],"n":[[12764,15716,9053],[8748,7788,4041]]},"overall_satisfaction":{"label":"NSS overall satisfaction (/5)","values":[[3.7,4.08,4.2],[3.29,3.68,3.78]],"n":[[2244,2898,1668],[1021,1255,716]]},"academic_self_efficacy":{"label":"Academic self-efficacy (/5)","values":[[3.42,3.7,3.88],[3.35,3.64,3.85]],"n":[[16432,20624,11935],[10773,10176,5298]]},"employed_prof":{"label":"Professional employment (%)","values":[[20.1,27.5,33.8],[15.2,20.2,25.4]],"n":[[1201,2017,1250],[421,709,473]]}}},"first_gen_label|sec_band":{"rows":["Continuing-ed family","First-in-family"],"cols":["Low (SEC 1-3)","Mid (SEC 4-6)","High (SEC 7-8)"],"row_label":"First-in-family","col_label":"Socio-economic band","metrics":{"good_honours":{"label":"Achieved First/2:1 (%)","values":[[24.1,51.7,68.6],[20.2,45.7,58.3]],"n":[[698,1932,1620],[924,794,103]]},"failed_year":{"label":"Failed a year (%)","values":[[23.4,8.2,4.1],[26.2,10.3,5.9]],"n":[[9107,16512,12215],[12405,6992,879]]},"withdrawn":{"label":"Withdrew (%)","values":[[11.1,5.8,4.1],[12.3,6.0,5.0]],"n":[[9107,16512,12215],[12405,6992,879]]},"overall_satisfaction":{"label":"NSS overall satisfaction (/5)","values":[[3.59,3.97,4.08],[3.55,3.92,4.03]],"n":[[1394,2899,2230],[1871,1254,154]]},"academic_self_efficacy":{"label":"Academic self-efficacy (/5)","values":[[3.73,3.86,3.91],[3.14,3.26,3.32]],"n":[[11635,21690,16086],[15570,9110,1147]]},"employed_prof":{"label":"Professional employment (%)","values":[[19.6,26.5,31.5],[18.2,23.4,31.1]],"n":[[698,1932,1620],[924,794,103]]}}}},"distributions":{"species":{"label":"Ancestry","bins":[0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95],"groups":{"Dwarf":[0.0,0.0,0.0,0.0,0.02,0.13,0.67,2.76,7.98,14.17,16.61,16.02,14.48,11.85,8.04,4.47,1.95,0.63,0.19,0.04],"Elf":[0.0,0.0,0.0,0.0,0.0,0.03,0.09,0.63,1.78,5.24,9.86,14.39,17.35,17.79,15.38,10.33,5.02,1.55,0.44,0.11]}},"gender_label":{"label":"Gender","bins":[0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95],"groups":{"Male":[0.0,0.0,0.0,0.0,0.03,0.09,0.41,1.9,5.73,10.67,13.99,15.46,15.39,14.16,10.83,6.78,3.18,1.06,0.27,0.06],"Female":[0.0,0.0,0.0,0.0,0.0,0.09,0.46,1.95,5.44,10.56,13.93,15.2,15.8,14.29,11.08,6.74,3.11,0.96,0.3,0.09],"Neuter":[0.0,0.0,0.0,0.0,0.0,0.08,0.48,1.84,5.08,10.84,13.82,15.77,15.74,13.96,10.83,7.03,3.3,0.85,0.36,0.02]}},"has_disability":{"label":"Disability","bins":[0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95],"groups":{"No known disability":[0.0,0.0,0.0,0.0,0.01,0.03,0.1,0.42,2.38,7.14,11.88,14.82,16.65,16.6,14.15,9.33,4.53,1.45,0.42,0.1],"Disability disclosed":[0.0,0.0,0.0,0.0,0.03,0.18,1.05,4.65,11.28,17.03,17.71,16.4,13.71,9.81,5.08,2.16,0.68,0.16,0.05,0.01]}},"first_gen_label":{"label":"First-in-family","bins":[0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95],"groups":{"Continuing-ed family":[0.0,0.0,0.0,0.0,0.01,0.08,0.29,1.39,3.89,8.0,11.8,14.72,16.15,15.94,13.09,8.72,4.16,1.3,0.37,0.09],"First-in-family":[0.0,0.0,0.0,0.0,0.02,0.1,0.72,2.9,8.61,15.56,17.94,16.61,14.6,10.94,6.92,3.19,1.3,0.42,0.14,0.02]}},"sec_band":{"label":"Socio-economic band","bins":[0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95],"groups":{"Low (SEC 1-3)":[0.0,0.0,0.0,0.0,0.04,0.18,0.96,4.13,11.37,19.32,20.64,17.01,12.86,8.21,3.79,1.04,0.33,0.1,0.02,0.0],"Mid (SEC 4-6)":[0.0,0.0,0.0,0.0,0.0,0.06,0.17,0.79,2.8,7.02,12.18,16.16,17.9,17.39,13.21,7.8,3.2,0.96,0.29,0.06],"High (SEC 7-8)":[0.0,0.0,0.0,0.0,0.01,0.0,0.06,0.29,0.86,2.86,6.1,11.28,16.02,18.3,18.61,14.41,7.75,2.52,0.73,0.19]}}},"headline":{"n_students":35000,"n_programmes":55,"n_faculties":5,"years_covered":"1046-47 \u2013 1052-53","n_grads":6071,"n_engagement_rows":2237556}};
+/* DATA:END */
+
+const LENS_KEYS = Object.keys(D.lens_metrics);
+const COLORS = ["#6FA89C","#C1683F","#8D82C4","#C9A24B"];
+const GRID = 'rgba(233,230,220,0.08)', BORD='rgba(233,230,220,0.2)';
+const FONT = {family:"'IBM Plex Mono', monospace"};
+Chart.defaults.font.family = FONT.family;
+Chart.defaults.color = '#8A93A0';
+
+const METRIC_DEFS = [
+  {group:'Award & Continuation', sub:'Who finishes, and how well', items:[
+    ['good_honours','Achieved First / 2:1','%',[0,100]],
+    ['first_class','Achieved a First','%',[0,50]],
+    ['avg_degree_mark','Avg. final degree mark','',[40,80]],
+    ['failed_year','Failed a year outright','%',[0,30]],
+    ['withdrawn','Withdrew before completion','%',[0,15]],
+    ['repeating','Repeating a year','%',[0,15]],
+  ]},
+  {group:'Experience & Wellbeing', sub:'Self-reported, 1–5 scale', items:[
+    ['overall_satisfaction','NSS overall satisfaction','/5',[1,5]],
+    ['academic_support','NSS academic support','/5',[1,5]],
+    ['assessment_feedback','NSS assessment & feedback','/5',[1,5]],
+    ['belonging_peers','Belonging with peers','/5',[1,5]],
+    ['academic_self_efficacy','Academic self-efficacy','/5',[1,5]],
+    ['support_satisfaction','Satisfaction with support','/5',[1,5]],
+  ]},
+  {group:'Engagement', sub:'From ~2.2m weekly records', items:[
+    ['attendance_rate','Timetabled attendance','%',[50,100]],
+    ['vle_logins','Avg. weekly VLE logins','',[0,10]],
+    ['vle_resource_views','Avg. weekly resource views','',[0,20]],
+    ['vle_forum_posts','Avg. weekly forum posts','',[0,3]],
+  ]},
+  {group:'Graduate Outcomes', sub:'Within 15 months of graduating', items:[
+    ['employed_any','In any employment','%',[0,100]],
+    ['employed_prof','Professional-level employment','%',[0,50]],
+    ['further_study','Progressed to further study','%',[0,30]],
+    ['salary_band','Avg. salary band (1–5)','/5',[1,5]],
+    ['time_to_outcome','Months to first outcome','',[0,12]],
+  ]},
+];
+
+function fmt(v,u){ if(v===null||v===undefined) return '—'; if(u==='/5')return v.toFixed(2); if(u==='%')return v.toFixed(1)+'%'; return v.toFixed(1); }
+
+/* ---------- header stats ---------- */
+(function(){
+  const h=D.headline;
+  const items=[[h.n_students.toLocaleString(),'students'],[h.n_programmes,'programmes'],[h.n_faculties,'faculties'],[h.years_covered,'academic years'],[h.n_grads.toLocaleString(),'graduates tracked'],[(h.n_engagement_rows/1e6).toFixed(1)+'m','engagement records']];
+  document.getElementById('statStrip').innerHTML = items.map(i=>`<div class="stat"><div class="v">${i[0]}</div><div class="k">${i[1]}</div></div>`).join('');
+})();
+
+/* ---------- tabs ---------- */
+const TABS=[['overview','Overview'],['explorer','Gap Explorer'],['trends','Trends'],['weekly','Weekly Rhythm'],['faculty','Faculty & Programmes'],['inter','Intersections'],['dist','Distributions']];
+let currentTab='overview';
+function renderTabs(){
+  document.getElementById('tabs').innerHTML = TABS.map(t=>`<button class="tab ${t[0]===currentTab?'active':''}" onclick="setTab('${t[0]}')">${t[1]}</button>`).join('');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+currentTab).classList.add('active');
+}
+function setTab(t){currentTab=t;renderTabs();INIT[t]&&INIT[t]();}
+window.setTab=setTab;
+
+/* ---------- shared: lens pill group ---------- */
+function lensPills(containerId, current, onPick){
+  const el=document.getElementById(containerId);
+  el.innerHTML='';
+  LENS_KEYS.forEach(k=>{
+    const b=document.createElement('button');
+    b.className='pill'+(k===current?' active':'');
+    b.textContent=D.lens_metrics[k].label;
+    b.onclick=()=>onPick(k);
+    el.appendChild(b);
+  });
+}
+function legendHtml(lensKey){
+  return D.lens_metrics[lensKey].groups.map((g,i)=>`<div class="legend-item"><div class="legend-dot" style="background:${COLORS[i]}"></div>${g.name} <span class="legend-n">(n=${g.n_students.toLocaleString()})</span></div>`).join('');
+}
+
+/* ================= OVERVIEW: gap matrix ================= */
+function buildGapMatrix(){
+  const rows=[];
+  METRIC_DEFS.forEach(sec=>sec.items.forEach(([key,name,unit])=>{
+    rows.push({key,name,unit,section:sec.group});
+  }));
+  // compute gaps per lens
+  rows.forEach(r=>{
+    r.gaps = LENS_KEYS.map(lk=>{
+      const vals = D.lens_metrics[lk].groups.map(g=>g[r.key]).filter(v=>v!==null);
+      return Math.max(...vals)-Math.min(...vals);
+    });
+  });
+  // colour scale per row relative to that row's max gap
+  function chip(v,maxv,unit){
+    const t = maxv>0 ? v/maxv : 0;
+    const alpha = 0.12 + t*0.75;
+    const col = `rgba(193,104,63,${alpha.toFixed(2)})`;
+    const txt = unit==='/5'? v.toFixed(2) : v.toFixed(1)+(unit==='%'?'':'');
+    return `<span class="gap-chip" style="background:${col}">${txt}${unit==='%'?'%':''}</span>`;
+  }
+  let html = `<tr><th>Lifecycle metric</th>${LENS_KEYS.map(lk=>`<th>${D.lens_metrics[lk].label}</th>`).join('')}</tr>`;
+  let lastSection='';
+  rows.forEach(r=>{
+    if(r.section!==lastSection){
+      html+=`<tr><td colspan="${LENS_KEYS.length+1}" style="padding:12px 9px 5px;color:#C9A24B;font-size:10px;letter-spacing:.1em;text-transform:uppercase;border-bottom:none;">${r.section}</td></tr>`;
+      lastSection=r.section;
+    }
+    const maxg=Math.max(...r.gaps);
+    html+=`<tr onclick="openInExplorer()">${`<td>${r.name}</td>`}${r.gaps.map(g=>`<td>${chip(g,maxg,r.unit)}</td>`).join('')}</tr>`;
+  });
+  document.getElementById('gapMatrix').innerHTML=html;
+}
+window.openInExplorer=()=>setTab('explorer');
+
+/* ================= GAP EXPLORER ================= */
+let expLensKey='sec_band';
+const expCharts=[];
+const valueLabelPlugin={id:'vlp',afterDatasetsDraw(chart){
+  const {ctx}=chart;
+  chart.data.datasets.forEach((ds,di)=>{
+    const meta=chart.getDatasetMeta(di);
+    meta.data.forEach((bar,i)=>{
+      const v=ds.data[i]; if(v===null||v===undefined)return;
+      ctx.save();ctx.font="600 10.5px 'IBM Plex Mono'";
+      ctx.fillStyle=Array.isArray(ds.backgroundColor)?ds.backgroundColor[i]:ds.backgroundColor;
+      ctx.textBaseline='middle';ctx.textAlign='left';
+      ctx.fillText(fmt(v,ds.unit),bar.x+6,bar.y);ctx.restore();
+    });
+  });
+}};
+function renderExplorer(){
+  lensPills('expLens',expLensKey,k=>{expLensKey=k;renderExplorer();});
+  document.getElementById('expLegend').innerHTML=legendHtml(expLensKey);
+  expCharts.forEach(c=>c.destroy());expCharts.length=0;
+  const groups=D.lens_metrics[expLensKey].groups;
+  const el=document.getElementById('expPanels');el.innerHTML='';
+  METRIC_DEFS.forEach((sec,si)=>{
+    let inner='';
+    sec.items.forEach(([key,name,unit],mi)=>{
+      const vals=groups.map(g=>g[key]).filter(v=>v!==null);
+      const gap=Math.max(...vals)-Math.min(...vals);
+      inner+=`<div class="metric-block"><div class="metric-top"><div class="metric-name">${name}</div><div class="metric-gap">gap <b>${unit==='/5'?gap.toFixed(2)+' pts':gap.toFixed(1)+(unit==='%'?'%':'')}</b></div></div><div class="chart-h-sm"><canvas id="exp-${si}-${mi}"></canvas></div></div>`;
+    });
+    el.insertAdjacentHTML('beforeend',`<div class="panel"><div class="panel-head"><div class="panel-title">${sec.group}</div><div class="panel-sub">${sec.sub}</div></div><div class="panel-body grid-2">${inner}</div></div>`);
+  });
+  METRIC_DEFS.forEach((sec,si)=>{
+    sec.items.forEach(([key,name,unit,domain],mi)=>{
+      const ctx=document.getElementById(`exp-${si}-${mi}`);
+      expCharts.push(new Chart(ctx,{type:'bar',
+        data:{labels:groups.map(g=>g.name),datasets:[{data:groups.map(g=>g[key]),backgroundColor:groups.map((g,i)=>COLORS[i]),unit,borderRadius:2,barThickness:14}]},
+        plugins:[valueLabelPlugin],
+        options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,layout:{padding:{right:44}},
+          scales:{x:{min:domain[0],max:domain[1],grid:{color:GRID,drawTicks:false},border:{color:BORD},ticks:{font:{size:8.5},maxTicksLimit:4}},
+                  y:{grid:{display:false},border:{color:BORD},ticks:{font:{size:9.5}}}},
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt(c.raw,unit)}}}}
+      }));
+    });
+  });
+}
+
+/* ================= TRENDS ================= */
+let trLensKey='sec_band', trChart=null;
+function renderTrends(){
+  lensPills('trLens',trLensKey,k=>{trLensKey=k;renderTrends();});
+  document.getElementById('trLegend').innerHTML=legendHtml(trLensKey);
+  const metric=document.getElementById('trMetric').value;
+  const t=D.trends[trLensKey];
+  const isGrad = metric==='good_honours';
+  const labels = isGrad ? t.grad_years : t.years;
+  const unit = metric==='overall_satisfaction'?'/5':(metric==='avg_mark'?'':'%');
+  const sel=document.getElementById('trMetric');
+  document.getElementById('trTitle').textContent = sel.options[sel.selectedIndex].text + ' — by ' + t.label.toLowerCase();
+  if(trChart)trChart.destroy();
+  trChart=new Chart(document.getElementById('trChart'),{type:'line',
+    data:{labels,datasets:Object.keys(t.groups).map((g,i)=>({label:g,data:t.groups[g][metric],borderColor:COLORS[i],backgroundColor:COLORS[i],pointRadius:3,tension:.25,borderWidth:2}))},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{x:{grid:{color:GRID},border:{color:BORD},ticks:{font:{size:10}}},
+              y:{grid:{color:GRID},border:{color:BORD},ticks:{font:{size:10},callback:v=>unit==='%'?v+'%':v}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt(c.raw,unit)}}}}
+  });
+}
+document.getElementById('trMetric').addEventListener('change',renderTrends);
+
+/* ================= WEEKLY ================= */
+let wkLensKey='sec_band', wkA=null, wkV=null;
+function renderWeekly(){
+  lensPills('wkLens',wkLensKey,k=>{wkLensKey=k;renderWeekly();});
+  document.getElementById('wkLegend').innerHTML=legendHtml(wkLensKey);
+  const w=D.weekly[wkLensKey];
+  if(wkA)wkA.destroy(); if(wkV)wkV.destroy();
+  const mk=(id,key,unit,ymin,ymax)=>new Chart(document.getElementById(id),{type:'line',
+    data:{labels:w.weeks.map(x=>'W'+x),datasets:Object.keys(w.groups).map((g,i)=>({label:g,data:w.groups[g][key],borderColor:COLORS[i],backgroundColor:COLORS[i],pointRadius:2.5,tension:.3,borderWidth:2}))},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{x:{grid:{color:GRID},border:{color:BORD},ticks:{font:{size:9.5}}},
+              y:{min:ymin,max:ymax,grid:{color:GRID},border:{color:BORD},ticks:{font:{size:9.5},callback:v=>unit==='%'?v+'%':v}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmt(c.raw,unit)}}}}
+  });
+  wkA=mk('wkAtt','attendance','%',60,95);
+  wkV=mk('wkVle','vle_logins','',5,10);
+}
+
+/* ================= FACULTY & PROGRAMMES ================= */
+let facLensKey='sec_band', facChart=null;
+function renderFaculty(){
+  lensPills('facLens',facLensKey,k=>{facLensKey=k;renderFaculty();});
+  document.getElementById('facLegend').innerHTML=legendHtml(facLensKey);
+  const metric=document.getElementById('facMetric').value;
+  const f=D.faculty[facLensKey];
+  const sel=document.getElementById('facMetric');
+  document.getElementById('facTitle').textContent=sel.options[sel.selectedIndex].text+' — by faculty × '+f.label.toLowerCase();
+  if(facChart)facChart.destroy();
+  facChart=new Chart(document.getElementById('facChart'),{type:'bar',
+    data:{labels:f.faculties,datasets:Object.keys(f.groups).map((g,i)=>({label:g,data:f.groups[g][metric],backgroundColor:COLORS[i],borderRadius:2,maxBarThickness:26}))},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{x:{grid:{display:false},border:{color:BORD},ticks:{font:{size:9.5}}},
+              y:{grid:{color:GRID},border:{color:BORD},ticks:{font:{size:10},callback:v=>v+'%'}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+': '+(c.raw===null?'—':c.raw.toFixed(1)+'%')}}}}
+  });
+  renderProgTable();
+}
+document.getElementById('facMetric').addEventListener('change',renderFaculty);
+
+let ptSort={col:'sec_gap',dir:-1};
+function renderProgTable(){
+  const cols=[['name','Programme'],['faculty','Faculty'],['n','n'],['good_honours','First/2:1 %'],['failed_year','Fail-yr %'],['withdrawn','Withdrawn %'],['satisfaction','NSS /5'],['sec_gap','SEC gap (pts)']];
+  const rows=[...D.programmes].sort((a,b)=>{
+    const av=a[ptSort.col], bv=b[ptSort.col];
+    if(av===null)return 1; if(bv===null)return -1;
+    return (av<bv?-1:av>bv?1:0)*ptSort.dir;
+  });
+  let html='<tr>'+cols.map(c=>`<th onclick="ptSortBy('${c[0]}')">${c[1]}${ptSort.col===c[0]?` <span class="arrow">${ptSort.dir===1?'▲':'▼'}</span>`:''}</th>`).join('')+'</tr>';
+  rows.forEach(r=>{
+    const secCls = r.sec_gap===null?'':(r.sec_gap>=40?'warn':(r.sec_gap<=25?'ok':''));
+    html+=`<tr><td>${r.name}</td><td class="fac">${r.faculty}</td><td>${r.n.toLocaleString()}</td><td>${r.good_honours===null?'—':r.good_honours.toFixed(1)}</td><td>${r.failed_year===null?'—':r.failed_year.toFixed(1)}</td><td>${r.withdrawn===null?'—':r.withdrawn.toFixed(1)}</td><td>${r.satisfaction===null?'—':r.satisfaction.toFixed(2)}</td><td class="${secCls}">${r.sec_gap===null?'—':(r.sec_gap>0?'+':'')+r.sec_gap.toFixed(1)}</td></tr>`;
+  });
+  document.getElementById('progTable').innerHTML=html;
+}
+window.ptSortBy=(c)=>{ if(ptSort.col===c){ptSort.dir*=-1;}else{ptSort={col:c,dir:-1};} renderProgTable(); };
+
+/* ================= INTERSECTIONS ================= */
+function initInterControls(){
+  const a=document.getElementById('intA'), b=document.getElementById('intB'), m=document.getElementById('intMetric');
+  if(a.options.length)return;
+  LENS_KEYS.forEach(k=>{a.add(new Option(D.lens_metrics[k].label,k));b.add(new Option(D.lens_metrics[k].label,k));});
+  a.value='sec_band'; b.value='has_disability';
+  const anyKey=Object.keys(D.intersections)[0];
+  Object.entries(D.intersections[anyKey].metrics).forEach(([mk,mv])=>m.add(new Option(mv.label,mk)));
+  m.value='good_honours';
+  [a,b,m].forEach(el=>el.addEventListener('change',renderInter));
+}
+function renderInter(){
+  const a=document.getElementById('intA').value, b=document.getElementById('intB').value, mk=document.getElementById('intMetric').value;
+  if(a===b){document.getElementById('intTable').innerHTML='<tr><td style="padding:14px;color:#8A93A0;">Pick two different lenses to cross.</td></tr>';return;}
+  let key=`${a}|${b}`, flip=false;
+  if(!D.intersections[key]){key=`${b}|${a}`;flip=true;}
+  const e=D.intersections[key], M=e.metrics[mk];
+  document.getElementById('intTitle').textContent=M.label+' — '+(flip?e.col_label:e.row_label)+' × '+(flip?e.row_label:e.col_label);
+  let rows=e.rows, cols=e.cols, vals=M.values, ns=M.n;
+  if(flip){
+    // transpose
+    const t=[],tn=[];
+    for(let j=0;j<cols.length;j++){t.push(vals.map(r=>r[j]));tn.push(ns.map(r=>r[j]));}
+    vals=t;ns=tn;[rows,cols]=[cols,rows];
+  }
+  const flat=vals.flat().filter(v=>v!==null);
+  const mn=Math.min(...flat),mx=Math.max(...flat);
+  const isPct=M.label.includes('%');
+  function cell(v,n){
+    if(v===null)return `<td><div class="hm-cell" style="background:rgba(233,230,220,0.03);color:#5D6672;">—<span class="n">n=${n}</span></div></td>`;
+    const t=mx>mn?(v-mn)/(mx-mn):0.5;
+    // low = clay (bad-ish), high = teal — but for "bad" metrics invert
+    const bad = ['failed','withdrew'].some(w=>M.label.toLowerCase().includes(w.toLowerCase()));
+    const tt = bad ? 1-t : t;
+    const r1=[193,104,63], r2=[111,168,156];
+    const c=r1.map((x,i)=>Math.round(x+(r2[i]-x)*tt));
+    return `<td><div class="hm-cell" style="background:rgba(${c[0]},${c[1]},${c[2]},0.28);color:#E9E6DC;">${isPct?v.toFixed(1)+'%':v.toFixed(2)}<span class="n">n=${n.toLocaleString()}</span></div></td>`;
+  }
+  let html=`<tr><th></th>${cols.map(c=>`<th>${c}</th>`).join('')}</tr>`;
+  rows.forEach((r,i)=>{ html+=`<tr><td class="hm-rowlabel">${r}</td>${cols.map((c,j)=>cell(vals[i][j],ns[i][j])).join('')}</tr>`; });
+  document.getElementById('intTable').innerHTML=html;
+}
+
+/* ================= DISTRIBUTIONS ================= */
+let dsLensKey='sec_band', dsChart=null;
+function renderDist(){
+  lensPills('dsLens',dsLensKey,k=>{dsLensKey=k;renderDist();});
+  document.getElementById('dsLegend').innerHTML=legendHtml(dsLensKey);
+  const d=D.distributions[dsLensKey];
+  if(dsChart)dsChart.destroy();
+  const labels=d.bins.map(b=>b+'–'+(b+5));
+  dsChart=new Chart(document.getElementById('dsChart'),{type:'line',
+    data:{labels,datasets:Object.keys(d.groups).map((g,i)=>({label:g,data:d.groups[g],borderColor:COLORS[i],backgroundColor:COLORS[i]+'22',fill:true,pointRadius:0,tension:.35,borderWidth:2}))},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{x:{grid:{color:GRID},border:{color:BORD},ticks:{font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:11}},
+              y:{grid:{color:GRID},border:{color:BORD},ticks:{font:{size:10},callback:v=>v+'%'}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw.toFixed(1)+'% of student-years'}}},
+    }
+  });
+}
+
+/* ---------- init ---------- */
+const INIT={
+  overview:buildGapMatrix,
+  explorer:renderExplorer,
+  trends:renderTrends,
+  weekly:renderWeekly,
+  faculty:renderFaculty,
+  inter:()=>{initInterControls();renderInter();},
+  dist:renderDist,
+};
+renderTabs();
+buildGapMatrix();
+</script>
+</body>
+</html>
